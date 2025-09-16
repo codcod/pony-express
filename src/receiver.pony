@@ -23,63 +23,63 @@ use "time"
 use "gateways"
 
 actor Router
-    let _email: EmailGateway
-    let _sms: SmsGateway
-    let _push: PushGateway
-    new create(email: EmailGateway, sms: SmsGateway, push: PushGateway) =>
-        _email = email
-        _sms = sms
-        _push = push
+  let _email: EmailGateway
+  let _sms: SmsGateway
+  let _push: PushGateway
+  new create(email: EmailGateway, sms: SmsGateway, push: PushGateway) =>
+    _email = email
+    _sms = sms
+    _push = push
 
-    be route(msg: ProcessedMessage) =>
-        match msg.original.kind()
-        | EmailKind => _email.send(msg)
-        | SmsKind => _sms.send(msg)
-        | PushKind => _push.send(msg)
-        end
+  be route(msg: ProcessedMessage) =>
+    match msg.original.kind()
+    | EmailKind => _email.send(msg)
+    | SmsKind => _sms.send(msg)
+    | PushKind => _push.send(msg)
+    end
 
 actor Processor
-    let _router: Router
-    new create(router: Router) =>
-        _router = router
+  let _router: Router
+  new create(router: Router) =>
+    _router = router
 
-    be process(m: OutboundMessage) =>
-        // Example: basic validation & enrichment
-        if m.recipient().size() == 0 then
-            // Drop silently or could log
-            return
+  be process(m: OutboundMessage) =>
+    // Example: basic validation & enrichment
+    if m.recipient().size() == 0 then
+      // Drop silently or could log
+      return
+    end
+    let meta = recover val
+      let m2 = Map[String, String]
+      m2("processed_at") = Time.seconds().string()
+      m2("gateway_key") =
+        match m.kind()
+        | EmailKind => "email"
+        | SmsKind => "sms"
+        | PushKind => "push"
         end
-        let meta = recover val
-            let m2 = Map[String, String]
-            m2("processed_at") = Time.seconds().string()
-            m2("gateway_key") =
-                match m.kind()
-                | EmailKind => "email"
-                | SmsKind => "sms"
-                | PushKind => "push"
-                end
-            m2
-        end
-        let processed = ProcessedMessage(m, meta)
-        _router.route(processed)
+      m2
+    end
+    let processed = ProcessedMessage(m, meta)
+    _router.route(processed)
 
 actor Receiver
-    let _processor: Processor
-    var _next_id: U64 = 1
-    new create(p: Processor) =>
-        _processor = p
+  let _processor: Processor
+  var _next_id: U64 = 1
+  new create(p: Processor) =>
+    _processor = p
 
-    be receive(kind: MessageKind, recipient: String, body: String, subject: (String | None) = None) =>
-        let id' = _next_id
-        _next_id = _next_id + 1
-        let msg: OutboundMessage =
-            match kind
-            | EmailKind =>
-                let subj = match subject | let s: String => s | None => "(no subject)" end
-                EmailMessage(id', recipient, body, subj)
-            | SmsKind =>
-                SmsMessage(id', recipient, body)
-            | PushKind =>
-                PushMessage(id', recipient, body)
-            end
-        _processor.process(msg)
+  be receive(kind: MessageKind, recipient: String, body: String, subject: (String | None) = None) =>
+    let id' = _next_id
+    _next_id = _next_id + 1
+    let msg: OutboundMessage =
+      match kind
+      | EmailKind =>
+        let subj = match subject | let s: String => s | None => "(no subject)" end
+        EmailMessage(id', recipient, body, subj)
+      | SmsKind =>
+        SmsMessage(id', recipient, body)
+      | PushKind =>
+            PushMessage(id', recipient, body)
+        end
+    _processor.process(msg)

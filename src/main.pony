@@ -17,21 +17,21 @@ use "gateways"
 use "web"
 
 actor Main
-    new create(env: Env) =>
-        let email = EmailGateway
-        let sms = SmsGateway
-        let push = PushGateway
-        let router = Router(email, sms, push)
-        let processor = Processor(router)
-        let receiver = Receiver(processor)
+  new create(env: Env) =>
+    let email = EmailGateway
+    let sms = SmsGateway
+    let push = PushGateway
+    let router = Router(email, sms, push)
+    let processor = Processor(router)
+    let receiver = Receiver(processor)
 
-        // Start web server
-        let web_server = WebServer(env.root, receiver, "8080")
-        env.out.print("Web server started on port 8080")
-        env.out.print("POST /api/v1/messages/send to send messages")
+    // Start web server
+    let web_server = WebServer(env.root, receiver, "8080")
+    env.out.print("Web server started on port 8080")
+    env.out.print("POST /api/v1/messages/send to send messages")
 
-        // Demo traffic
-        receiver.receive(EmailKind, "alice@example.com", "Welcome aboard!", "Hello Alice")
-        receiver.receive(SmsKind, "+1555123456", "Code 123456")
-        receiver.receive(PushKind, "device:xyz", "You have a new notification")
-        receiver.receive(EmailKind, "", "Will be dropped", "No recipient") // invalid
+    // Demo traffic
+    receiver.receive(EmailKind, "alice@example.com", "Welcome aboard!", "Hello Alice")
+    receiver.receive(SmsKind, "+1555123456", "Code 123456")
+    receiver.receive(PushKind, "device:xyz", "You have a new notification")
+    receiver.receive(EmailKind, "", "Will be dropped", "No recipient") // invalid

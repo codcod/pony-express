@@ -14,5 +14,5 @@ Public API:
 use @printf[I32](fmt: Pointer[U8] tag, ...)
 
 primitive Logger
-        fun print(message: String) =>
-                @printf("%s\n".cstring(), message.cstring())
+  fun print(message: String) =>
+    @printf("%s\n".cstring(), message.cstring())

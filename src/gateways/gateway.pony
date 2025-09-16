@@ -10,4 +10,4 @@ use "collections"
 use ".."
 
 trait Gateway
-    be send(msg: ProcessedMessage)
+  be send(msg: ProcessedMessage)

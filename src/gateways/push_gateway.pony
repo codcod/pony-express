@@ -10,9 +10,9 @@ use "collections"
 use ".."
 
 actor PushGateway is Gateway
-    be send(msg: ProcessedMessage) =>
-        try
-            let pm = msg.original as PushMessage
-            // Logger.print("[PUSH] to=" + pm.recipient() +
-            //    " body=" + pm.body())
-        end
+  be send(msg: ProcessedMessage) =>
+    try
+      let pm = msg.original as PushMessage
+      // Logger.print("[PUSH] to=" + pm.recipient() +
+      //    " body=" + pm.body())
+    end

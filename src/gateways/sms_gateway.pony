@@ -9,9 +9,9 @@ use "collections"
 use ".."
 
 actor SmsGateway is Gateway
-    be send(msg: ProcessedMessage) =>
-        try
-            let sm = msg.original as SmsMessage
-            Logger.print("[SMS] to=" + sm.recipient() +
-                " body=" + sm.body())
-        end
+  be send(msg: ProcessedMessage) =>
+    try
+      let sm = msg.original as SmsMessage
+      Logger.print("[SMS] to=" + sm.recipient() +
+        " body=" + sm.body())
+    end

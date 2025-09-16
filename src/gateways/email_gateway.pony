@@ -10,10 +10,10 @@ use "collections"
 use ".."
 
 actor EmailGateway is Gateway
-    be send(msg: ProcessedMessage) =>
-        try
-            let em = msg.original as EmailMessage
-            Logger.print("[EMAIL] to=" + em.recipient() +
-                " subject=" + em.subject() +
-                " body=" + em.body())
-        end
+  be send(msg: ProcessedMessage) =>
+    try
+      let em = msg.original as EmailMessage
+      Logger.print("[EMAIL] to=" + em.recipient() +
+        " subject=" + em.subject() +
+        " body=" + em.body())
+    end
