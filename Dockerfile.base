@@ -1,0 +1,114 @@
+# Builder stage - compile ponyc from source
+FROM debian:trixie-slim AS builder
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PONY_VERSION=0.59.0
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    clang \
+    cmake \
+    git \
+    make \
+    python3 \
+    llvm-18 \
+    llvm-18-dev \
+    clang-18 \
+    libclang-18-dev \
+    libssl-dev \
+    libpcre2-dev \
+    libxml2-dev \
+    zlib1g-dev \
+    libffi-dev \
+    libc++-18-dev \
+    libc++abi-18-dev \
+    curl \
+    wget \
+    ca-certificates \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up LLVM alternatives
+RUN update-alternatives --install /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-18 100 && \
+    update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100 && \
+    update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
+
+WORKDIR /tmp
+RUN git clone --recursive --depth 1 --branch ${PONY_VERSION} https://github.com/ponylang/ponyc.git
+WORKDIR /tmp/ponyc
+
+# Build a minimal LLVM quickly by configuring it to only build what's needed
+WORKDIR /tmp/ponyc/lib/llvm/src
+RUN cmake -S llvm -B build \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DLLVM_TARGETS_TO_BUILD="host" \
+    -DLLVM_ENABLE_PROJECTS="" \
+    -DLLVM_INCLUDE_EXAMPLES=OFF \
+    -DLLVM_INCLUDE_TESTS=OFF \
+    -DLLVM_INCLUDE_BENCHMARKS=OFF \
+    -DLLVM_INCLUDE_DOCS=OFF \
+    -DLLVM_BUILD_TOOLS=ON \
+    -DLLVM_BUILD_UTILS=OFF \
+    -DLLVM_ENABLE_RTTI=ON \
+    -DLLVM_ENABLE_EH=ON
+
+RUN cmake --build build -j2 --target llvm-config llvm-tblgen
+
+# Go back to ponyc build
+WORKDIR /tmp/ponyc
+RUN make configure
+RUN make libs
+RUN make ponyc config=release
+RUN make install prefix=/usr/local config=release
+
+# Runtime stage
+FROM debian:trixie-slim AS runtime
+
+ENV PONY_VERSION=0.59.0
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    clang-18 \
+    libllvm18 \
+    libc++1 \
+    libc++abi1 \
+    libatomic1 \
+    libssl3 \
+    libpcre2-8-0 \
+    libffi8 \
+    zlib1g \
+    binutils \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* \
+    && rm -rf /var/tmp/*
+
+RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100
+
+# Copy the compiled ponyc from builder stage
+COPY --from=builder /usr/local/bin/ponyc /usr/local/bin/
+COPY --from=builder /usr/local/include/pony* /usr/local/include/
+COPY --from=builder /usr/local/lib/libpony* /usr/local/lib/
+COPY --from=builder /usr/local/lib/pony /usr/local/lib/pony
+COPY --from=builder /tmp/ponyc /usr/local/lib/pony
+
+# Create minimal non-root user
+RUN useradd --no-create-home --shell /bin/false --user-group pony \
+    && mkdir -p /workspace \
+    && chown pony:pony /workspace
+
+WORKDIR /workspace
+USER pony
+
+# Verify installation
+RUN ponyc --version
+
+CMD ["bash"]
+
+# Labels
+LABEL org.opencontainers.image.title="Pony Compiler Base Image"
+LABEL org.opencontainers.image.description="Base image for compiling Pony applications"
+LABEL org.opencontainers.image.version=${PONY_VERSION}
+LABEL org.opencontainers.image.vendor="codcod"
+LABEL org.opencontainers.image.source="https://github.com/ponylang/ponyc"

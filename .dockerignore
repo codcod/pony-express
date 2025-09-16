@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# Build artifacts
+*.o
+src1
+pony-second
+example
+hello
+
+# Docker files (exclude others when building multistage)
+Dockerfile.base
+Dockerfile.fast
+build-base.sh
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+*.md
+
+# Test files
+tests/

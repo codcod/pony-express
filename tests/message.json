@@ -1,0 +1,6 @@
+{
+  "type": "push",
+  "recipient": "recipient@example.com",
+  "body": "message content",
+  "subject": "optional subject for email"
+}

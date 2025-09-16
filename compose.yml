@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # Development environment with Pony compiler (multistage build)
+  pony-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+    container_name: pony-dev
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+
+  # Application runtime (using multi-stage build)
+  pony-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+      target: runtime
+    container_name: pony-message-app
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ponyc", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Build-only service for CI/CD
+  pony-build:
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+      target: app-builder
+    container_name: pony-build
+    volumes:
+      - ./build-output:/app/output
+    command: >
+      sh -c "cp src1 /app/output/ 2>/dev/null || echo 'No binary found'"

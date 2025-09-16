@@ -1,0 +1,16 @@
+@host = localhost
+@port = 8080
+@base_url = http://{{host}}:{{port}}/api/v1/messages
+
+###
+# Send message
+# type: "email", "sms", or "push"
+POST {{base_url}}/send
+Content-Type: application/json
+
+{
+  "type": "push",
+  "recipient": "recipient@example.com",
+  "body": "message content",
+  "subject": "optional subject for email"
+}
